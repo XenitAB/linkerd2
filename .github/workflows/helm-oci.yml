@@ -20,27 +20,27 @@ jobs:
         run: |
           cd charts/linkerd2-cni
           helm registry login -u ${{ github.repository_owner }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd2-cni
+          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd2-cni -u
           helm push linkerd2-cni-${{ steps.get_tag.outputs.tag }}.tgz oci://ghcr.io/xenitab/helm-charts
           cd ../..
       - name: Publish Helm charts linkerd-control-plane
         run: |
           cd charts/linkerd-control-plane
           helm registry login -u ${{ github.repository_owner }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd-control-plane
+          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd-control-plane -u
           helm push linkerd-control-plane-${{ steps.get_tag.outputs.tag }}.tgz oci://ghcr.io/xenitab/helm-charts
           cd ../..
       - name: Publish Helm charts linkerd-control-plane
         run: |
           cd charts/linkerd-crds
           helm registry login -u ${{ github.repository_owner }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd-crds
+          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd-crds -u
           helm push linkerd-crds-${{ steps.get_tag.outputs.tag }}.tgz oci://ghcr.io/xenitab/helm-charts
           cd ../..
       - name: Publish Helm charts linkerd-viz
         run: |
           cd viz/charts/linkerd-viz
           helm registry login -u ${{ github.repository_owner }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd-viz
+          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd-viz -u
           helm push linkerd-viz-${{ steps.get_tag.outputs.tag }}.tgz oci://ghcr.io/xenitab/helm-charts
           cd ../..
