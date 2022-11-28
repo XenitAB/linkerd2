@@ -15,7 +15,7 @@ jobs:
   helm-docs-diff:
     runs-on: ubuntu-20.04
     timeout-minutes: 5
-    container: ghcr.io/linkerd/dev:v29-tools
+    container: ghcr.io/linkerd/dev:v32-tools
     steps:
-    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
     - run: bin/helm-docs-diff

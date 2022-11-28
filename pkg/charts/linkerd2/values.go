@@ -60,9 +60,11 @@ type (
 		PodLabels         map[string]string `json:"podLabels"`
 		PriorityClassName string            `json:"priorityClassName"`
 
+		PodMonitor       *PodMonitor       `json:"podMonitor"`
 		PolicyController *PolicyController `json:"policyController"`
 		Proxy            *Proxy            `json:"proxy"`
 		ProxyInit        *ProxyInit        `json:"proxyInit"`
+		NetworkValidator *NetworkValidator `json:"networkValidator"`
 		Identity         *Identity         `json:"identity"`
 		DebugContainer   *DebugContainer   `json:"debugContainer"`
 		ProxyInjector    *Webhook          `json:"proxyInjector"`
@@ -128,14 +130,44 @@ type (
 		XTMountPath          *VolumeMountPath `json:"xtMountPath"`
 		Resources            *Resources       `json:"resources"`
 		CloseWaitTimeoutSecs int64            `json:"closeWaitTimeoutSecs"`
+		Privileged           bool             `json:"privileged"`
 		RunAsRoot            bool             `json:"runAsRoot"`
 		RunAsUser            int64            `json:"runAsUser"`
 		IptablesMode         string           `json:"iptablesMode"`
 	}
 
+	NetworkValidator struct {
+		LogLevel    string `json:"logLevel"`
+		LogFormat   string `json:"logFormat"`
+		ConnectAddr string `json:"connectAddr"`
+		ListenAddr  string `json:"listenAddr"`
+		Timeout     string `json:"timeout"`
+	}
+
 	// DebugContainer contains the fields to set the debugging sidecar
 	DebugContainer struct {
 		Image *Image `json:"image"`
+	}
+
+	// PodMonitor contains the fields to configure the Prometheus Operator `PodMonitor`
+	PodMonitor struct {
+		Enabled        bool                  `json:"enabled"`
+		ScrapeInterval string                `json:"scrapeInterval"`
+		ScrapeTimeout  string                `json:"scrapeTimeout"`
+		Controller     *PodMonitorController `json:"controller"`
+		ServiceMirror  *PodMonitorComponent  `json:"serviceMirror"`
+		Proxy          *PodMonitorComponent  `json:"proxy"`
+	}
+
+	// PodMonitorController contains the fields to configure the Prometheus Operator `PodMonitor` for the control-plane
+	PodMonitorController struct {
+		Enabled           bool   `json:"enabled"`
+		NamespaceSelector string `json:"namespaceSelector"`
+	}
+
+	// PodMonitorComponent contains the fields to configure the Prometheus Operator `PodMonitor` for other components
+	PodMonitorComponent struct {
+		Enabled bool `json:"enabled"`
 	}
 
 	// PolicyController contains the fields to configure the policy controller container
@@ -244,7 +276,6 @@ func NewValues() (*Values, error) {
 		return nil, err
 	}
 
-	v.Proxy.Image.Version = version.Version
 	v.DebugContainer.Image.Version = version.Version
 	v.CliVersion = k8s.CreatedByAnnotationValue()
 	v.ProfileValidator.TLS = &TLS{}

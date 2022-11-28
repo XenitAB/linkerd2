@@ -2,6 +2,8 @@ package inject
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -100,7 +102,7 @@ const (
 
 // OwnerRetrieverFunc is a function that returns a pod's owner reference
 // kind and name
-type OwnerRetrieverFunc func(*corev1.Pod) (string, string)
+type OwnerRetrieverFunc func(*corev1.Pod) (string, string, error)
 
 // ResourceConfig contains the parsed information for a given workload
 type ResourceConfig struct {
@@ -642,7 +644,10 @@ func (conf *ResourceConfig) parse(bytes []byte) error {
 		conf.pod.meta = &v.ObjectMeta
 
 		if conf.ownerRetriever != nil {
-			kind, name := conf.ownerRetriever(v)
+			kind, name, err := conf.ownerRetriever(v)
+			if err != nil {
+				return err
+			}
 			conf.workload.ownerRef = &metav1.OwnerReference{Kind: kind, Name: name}
 			switch kind {
 			case k8s.Deployment:
@@ -793,7 +798,17 @@ func (conf *ResourceConfig) serviceAccountVolumeMount() *corev1.VolumeMount {
 // annotations.
 func (conf *ResourceConfig) injectObjectMeta(values *podPatch) {
 
-	values.Annotations[k8s.ProxyVersionAnnotation] = values.Proxy.Image.Version
+	// Default proxy version to linkerd version
+	if values.Proxy.Image.Version != "" {
+		values.Annotations[k8s.ProxyVersionAnnotation] = values.Proxy.Image.Version
+	} else {
+		values.Annotations[k8s.ProxyVersionAnnotation] = values.LinkerdVersion
+	}
+
+	// Add the cert bundle's checksum to the workload's annotations.
+	checksumBytes := sha256.Sum256([]byte(values.IdentityTrustAnchorsPEM))
+	checksum := hex.EncodeToString(checksumBytes[:])
+	values.Annotations[k8s.ProxyTrustRootSHA] = checksum
 
 	if len(conf.pod.labels) > 0 {
 		values.AddRootLabels = len(conf.pod.meta.Labels) == 0

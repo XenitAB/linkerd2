@@ -13,14 +13,19 @@ import (
 const (
 	All                   = "all"
 	Authority             = "authority"
+	ConfigMap             = "configmap"
 	CronJob               = "cronjob"
 	DaemonSet             = "daemonset"
 	Deployment            = "deployment"
+	Endpoints             = "endpoints"
+	EndpointSlices        = "endpointslices"
 	Job                   = "job"
+	MutatingWebhookConfig = "mutatingwebhookconfig"
 	Namespace             = "namespace"
 	Pod                   = "pod"
 	ReplicationController = "replicationcontroller"
 	ReplicaSet            = "replicaset"
+	Secret                = "secret"
 	Service               = "service"
 	ServiceProfile        = "serviceprofile"
 	StatefulSet           = "statefulset"
@@ -41,6 +46,9 @@ const (
 	LinkAPIGroupVersion = "multicluster.linkerd.io/v1alpha1"
 	LinkKind            = "Link"
 
+	K8sCoreAPIGroup = "core"
+
+	NamespaceKind = "Namespace"
 	ServerKind    = "Server"
 	HTTPRouteKind = "HTTPRoute"
 

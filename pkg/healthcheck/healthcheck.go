@@ -539,13 +539,6 @@ func (hc *HealthChecker) allCategories() []*Category {
 						return hc.kubeAPI.CheckVersion(hc.kubeVersion)
 					},
 				},
-				{
-					description: "is running the minimum kubectl version",
-					hintAnchor:  "kubectl-version",
-					check: func(context.Context) error {
-						return k8s.CheckKubectlVersion()
-					},
-				},
 			},
 			false,
 		),
@@ -736,6 +729,13 @@ func (hc *HealthChecker) allCategories() []*Category {
 					hintAnchor:  "l5d-cluster-networks-pods",
 					check: func(ctx context.Context) error {
 						return hc.checkClusterNetworksContainAllPods(ctx)
+					},
+				},
+				{
+					description: "cluster networks contains all services",
+					hintAnchor:  "l5d-cluster-networks-pods",
+					check: func(ctx context.Context) error {
+						return hc.checkClusterNetworksContainAllServices(ctx)
 					},
 				},
 			},
@@ -1887,9 +1887,9 @@ func cluterNetworksContainCIDR(clusterIPNets []*net.IPNet, podIPNet *net.IPNet, 
 	return false
 }
 
-func clusterNetworksContainPod(clusterIPNets []*net.IPNet, pod corev1.Pod) bool {
+func clusterNetworksContainIP(clusterIPNets []*net.IPNet, ip string) bool {
 	for _, clusterIPNet := range clusterIPNets {
-		if clusterIPNet.Contains(net.ParseIP(pod.Status.PodIP)) {
+		if clusterIPNet.Contains(net.ParseIP(ip)) {
 			return true
 		}
 	}
@@ -1917,8 +1917,31 @@ func (hc *HealthChecker) checkClusterNetworksContainAllPods(ctx context.Context)
 		if len(pod.Status.PodIP) == 0 {
 			continue
 		}
-		if !clusterNetworksContainPod(clusterIPNets, pod) {
+		if !clusterNetworksContainIP(clusterIPNets, pod.Status.PodIP) {
 			return fmt.Errorf("the Linkerd clusterNetworks [%q] do not include pod %s/%s (%s)", hc.linkerdConfig.ClusterNetworks, pod.Namespace, pod.Name, pod.Status.PodIP)
+		}
+	}
+	return nil
+}
+
+func (hc *HealthChecker) checkClusterNetworksContainAllServices(ctx context.Context) error {
+	clusterNetworks := strings.Split(hc.linkerdConfig.ClusterNetworks, ",")
+	clusterIPNets := make([]*net.IPNet, len(clusterNetworks))
+	var err error
+	for i, clusterNetwork := range clusterNetworks {
+		_, clusterIPNets[i], err = net.ParseCIDR(clusterNetwork)
+		if err != nil {
+			return err
+		}
+	}
+	svcs, err := hc.kubeAPI.CoreV1().Services(corev1.NamespaceAll).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, svc := range svcs.Items {
+		clusterIP := svc.Spec.ClusterIP
+		if clusterIP != "" && clusterIP != "None" && !clusterNetworksContainIP(clusterIPNets, svc.Spec.ClusterIP) {
+			return fmt.Errorf("the Linkerd clusterNetworks [%q] do not include svc %s/%s (%s)", hc.linkerdConfig.ClusterNetworks, svc.Namespace, svc.Name, svc.Spec.ClusterIP)
 		}
 	}
 	return nil

@@ -14,6 +14,10 @@ proxyControlPort: 4190
 cniPluginImage:   "cr.l5d.io/linkerd/cni-plugin"
 # -- Tag for the CNI container Docker image
 cniPluginVersion: linkerdVersionValue
+# -- Additional labels to add to all pods
+podLabels: {}
+# -- Labels to apply to all resources
+commonLabels: {}
 # -- Log level for the CNI plugin
 logLevel:         info
 # -- Ports to redirect to proxy
@@ -39,7 +43,9 @@ privileged: false
 # -|- Tolerations section, See the
 # [K8S documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
 # for more information
-#tolerations:
+tolerations:
+  # -- toleration properties
+  - operator: Exists
 
 # -|- NodeAffinity section, See the
 # [K8S documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity)

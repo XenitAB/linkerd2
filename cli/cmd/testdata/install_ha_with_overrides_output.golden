@@ -27,9 +27,8 @@ rules:
 - apiGroups: ["authentication.k8s.io"]
   resources: ["tokenreviews"]
   verbs: ["create"]
-- apiGroups: ["apps"]
-  resources: ["deployments"]
-  verbs: ["get"]
+# TODO(ver) Restrict this to the Linkerd namespace. See
+# https://github.com/linkerd/linkerd2/issues/9367
 - apiGroups: [""]
   resources: ["events"]
   verbs: ["create", "patch"]
@@ -294,6 +293,7 @@ metadata:
   labels:
     linkerd.io/control-plane-component: heartbeat
     linkerd.io/control-plane-ns: linkerd
+
 ---
 ###
 ### Proxy Injector RBAC
@@ -495,11 +495,32 @@ data:
     imagePullPolicy: IfNotPresent
     imagePullSecrets: null
     linkerdVersion: install-control-plane-version
+    networkValidator:
+      connectAddr: 1.1.1.1:20001
+      listenAddr: 0.0.0.0:4140
+      logFormat: plain
+      logLevel: debug
+      timeout: 10s
     nodeAffinity: null
     nodeSelector:
       kubernetes.io/os: linux
     podAnnotations: {}
     podLabels: {}
+    podMonitor:
+      controller:
+        enabled: true
+        namespaceSelector: |
+          matchNames:
+            - {{ .Release.Namespace }}
+            - linkerd-viz
+            - linkerd-jaeger
+      enabled: false
+      proxy:
+        enabled: true
+      scrapeInterval: 10s
+      scrapeTimeout: 10s
+      serviceMirror:
+        enabled: true
     policyController:
       image:
         name: cr.l5d.io/linkerd/policy-controller
@@ -591,10 +612,11 @@ data:
       image:
         name: cr.l5d.io/linkerd/proxy-init
         pullPolicy: ""
-        version: v2.0.0
+        version: v2.1.0
       iptablesMode: legacy
       logFormat: ""
       logLevel: ""
+      privileged: false
       resources:
         cpu:
           limit: 100m
@@ -726,7 +748,7 @@ spec:
     targetPort: 8080
 ---
 kind: PodDisruptionBudget
-apiVersion: policy/v1beta1
+apiVersion: policy/v1
 metadata:
   name: linkerd-identity
   namespace: linkerd
@@ -875,7 +897,7 @@ spec:
         - name: LINKERD2_PROXY_POLICY_WORKLOAD
           value: "$(_pod_ns):$(_pod_name)"
         - name: LINKERD2_PROXY_INBOUND_DEFAULT_POLICY
-          value: "all-unauthenticated"
+          value: all-unauthenticated
         - name: LINKERD2_PROXY_POLICY_CLUSTER_NETWORKS
           value: "10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
         - name: LINKERD2_PROXY_INBOUND_CONNECT_TIMEOUT
@@ -911,6 +933,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.serviceAccountName
+        - name: _l5d_ns
+          value: linkerd
+        - name: _l5d_trustdomain
+          value: cluster.local
         - name: LINKERD2_PROXY_IDENTITY_DIR
           value: /var/run/linkerd/identity/end-entity
         - name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
@@ -965,6 +991,7 @@ spec:
         - mountPath: /var/run/secrets/tokens
           name: linkerd-identity-token
       initContainers:
+      
       - args:
         - --incoming-proxy-port
         - "4143"
@@ -976,7 +1003,7 @@ spec:
         - "4190,4191,4567,4568"
         - --outbound-ports-to-ignore
         - "443"
-        image: cr.l5d.io/linkerd/proxy-init:v2.0.0
+        image: cr.l5d.io/linkerd/proxy-init:v2.1.0
         imagePullPolicy: IfNotPresent
         name: linkerd-init
         resources:
@@ -992,9 +1019,9 @@ spec:
             add:
             - NET_ADMIN
             - NET_RAW
-          privileged: false
           runAsNonRoot: true
           runAsUser: 65534
+          privileged: false
           readOnlyRootFilesystem: true
         terminationMessagePolicy: FallbackToLogsOnError
         volumeMounts:
@@ -1120,7 +1147,7 @@ spec:
     targetPort: policy-https
 ---
 kind: PodDisruptionBudget
-apiVersion: policy/v1beta1
+apiVersion: policy/v1
 metadata:
   name: linkerd-dst
   namespace: linkerd
@@ -1222,7 +1249,7 @@ spec:
         - name: LINKERD2_PROXY_POLICY_WORKLOAD
           value: "$(_pod_ns):$(_pod_name)"
         - name: LINKERD2_PROXY_INBOUND_DEFAULT_POLICY
-          value: "all-unauthenticated"
+          value: all-unauthenticated
         - name: LINKERD2_PROXY_POLICY_CLUSTER_NETWORKS
           value: "10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
         - name: LINKERD2_PROXY_INBOUND_CONNECT_TIMEOUT
@@ -1258,6 +1285,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.serviceAccountName
+        - name: _l5d_ns
+          value: linkerd
+        - name: _l5d_trustdomain
+          value: cluster.local
         - name: LINKERD2_PROXY_IDENTITY_DIR
           value: /var/run/linkerd/identity/end-entity
         - name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
@@ -1428,6 +1459,7 @@ spec:
           name: policy-tls
           readOnly: true
       initContainers:
+      
       - args:
         - --incoming-proxy-port
         - "4143"
@@ -1439,7 +1471,7 @@ spec:
         - "4190,4191,4567,4568"
         - --outbound-ports-to-ignore
         - "443"
-        image: cr.l5d.io/linkerd/proxy-init:v2.0.0
+        image: cr.l5d.io/linkerd/proxy-init:v2.1.0
         imagePullPolicy: IfNotPresent
         name: linkerd-init
         resources:
@@ -1455,9 +1487,9 @@ spec:
             add:
             - NET_ADMIN
             - NET_RAW
-          privileged: false
           runAsNonRoot: true
           runAsUser: 65534
+          privileged: false
           readOnlyRootFilesystem: true
         terminationMessagePolicy: FallbackToLogsOnError
         volumeMounts:
@@ -1630,7 +1662,7 @@ spec:
         - name: LINKERD2_PROXY_POLICY_WORKLOAD
           value: "$(_pod_ns):$(_pod_name)"
         - name: LINKERD2_PROXY_INBOUND_DEFAULT_POLICY
-          value: "all-unauthenticated"
+          value: all-unauthenticated
         - name: LINKERD2_PROXY_POLICY_CLUSTER_NETWORKS
           value: "10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
         - name: LINKERD2_PROXY_INBOUND_CONNECT_TIMEOUT
@@ -1666,6 +1698,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.serviceAccountName
+        - name: _l5d_ns
+          value: linkerd
+        - name: _l5d_trustdomain
+          value: cluster.local
         - name: LINKERD2_PROXY_IDENTITY_DIR
           value: /var/run/linkerd/identity/end-entity
         - name: LINKERD2_PROXY_IDENTITY_TRUST_ANCHORS
@@ -1778,7 +1814,7 @@ spec:
         - "4190,4191,4567,4568"
         - --outbound-ports-to-ignore
         - "4567,4568"
-        image: cr.l5d.io/linkerd/proxy-init:v2.0.0
+        image: cr.l5d.io/linkerd/proxy-init:v2.1.0
         imagePullPolicy: IfNotPresent
         name: linkerd-init
         resources:
@@ -1794,9 +1830,9 @@ spec:
             add:
             - NET_ADMIN
             - NET_RAW
-          privileged: false
           runAsNonRoot: true
           runAsUser: 65534
+          privileged: false
           readOnlyRootFilesystem: true
         terminationMessagePolicy: FallbackToLogsOnError
         volumeMounts:
@@ -1847,7 +1883,7 @@ spec:
     targetPort: proxy-injector
 ---
 kind: PodDisruptionBudget
-apiVersion: policy/v1beta1
+apiVersion: policy/v1
 metadata:
   name: linkerd-proxy-injector
   namespace: linkerd

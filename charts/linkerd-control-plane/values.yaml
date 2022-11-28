@@ -52,6 +52,8 @@ identityTrustDomain: ""
 podAnnotations: {}
 # -- Additional labels to add to all pods
 podLabels: {}
+# -- Labels to apply to all resources
+commonLabels: {}
 # -- Kubernetes priorityClassName for the Linkerd Pods
 priorityClassName: ""
 # -- Runtime Class Name for all the pods
@@ -205,7 +207,7 @@ proxyInit:
     # @default -- imagePullPolicy
     pullPolicy: ""
     # -- Tag for the proxy-init container Docker image
-    version: v2.0.0
+    version: v2.1.0
   resources:
     cpu:
       # -- Maximum amount of CPU units that the proxy-init container can use
@@ -223,6 +225,13 @@ proxyInit:
       # -- Amount of ephemeral storage that the proxy-init container requests
       request: ""
   closeWaitTimeoutSecs: 0
+  # -- Privileged mode allows the container processes to inherit all security
+  # capabilities and bypass any security limitations enforced by the kubelet.
+  # When used with 'runAsRoot: true', the container will behave exactly as if
+  # it was running as root on the host. May escape cgroup limits and see other
+  # processes and devices on the host. 
+  # @default -- false
+  privileged: false
   # -- Allow overriding the runAsNonRoot behaviour (<https://github.com/linkerd/linkerd2/issues/7308>)
   runAsRoot: false
   # -- This value is used only if runAsRoot is false; otherwise runAsUser will be 0
@@ -230,6 +239,23 @@ proxyInit:
   xtMountPath:
     mountPath: /run
     name: linkerd-proxy-init-xtables-lock
+
+# network validator configuration
+# This runs on a host that uses iptables to reroute network traffic. The validator
+# ensures that iptables is correctly routing requests before we start linkerd.
+networkValidator:
+  # -- Log level for the network-validator
+  # @default -- debug
+  logLevel: debug
+  # -- Log format (`plain` or `json`) for network-validator
+  # @default -- plain
+  logFormat: plain
+  # -- Address to which the network-validator will attempt to connect. we expect this to be rewritten
+  connectAddr: "1.1.1.1:20001"
+  # -- Address to which network-validator listens to requests from itself
+  listenAddr: "0.0.0.0:4140"
+  # -- Timeout before network-validator fails to validate the pod's network connectivity
+  timeout: "10s"
 
 # -- For Private docker registries, authentication is needed.
 #  Registry secrets are applied to the respective service accounts
@@ -297,7 +323,6 @@ identity:
       # -- Key for the issuer certificate (ECDSA). It must be provided during
       # install
       keyPEM: |
-
 
 # -|- CPU, Memory and Ephemeral Storage resources required by the identity controller (see `proxy.resources` for sub-fields)
 #identityResources:
@@ -484,3 +509,27 @@ nodeSelector:
 # [K8S documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity)
 # for more information
 #nodeAffinity:
+
+# Prometheus Operator PodMonitor configuration
+podMonitor:
+  # -- Enables the creation of Prometheus Operator [PodMonitor](https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PodMonitor)
+  enabled: false
+  # -- Interval at which metrics should be scraped
+  scrapeInterval: 10s
+  # -- Iimeout after which the scrape is ended
+  scrapeTimeout: 10s
+  controller:
+    # -- Enables the creation of PodMonitor for the control-plane
+    enabled: true
+    # -- Selector to select which namespaces the Endpoints objects are discovered from
+    namespaceSelector: |
+      matchNames:
+        - {{ .Release.Namespace }}
+        - linkerd-viz
+        - linkerd-jaeger
+  serviceMirror:
+    # -- Enables the creation of PodMonitor for the Service Mirror component
+    enabled: true
+  proxy:
+    # -- Enables the creation of PodMonitor for the data-plane
+    enabled: true

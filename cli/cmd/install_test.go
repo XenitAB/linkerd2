@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -126,6 +126,13 @@ func TestRender(t *testing.T) {
 			},
 			RunAsRoot: false,
 			RunAsUser: 65534,
+		},
+		NetworkValidator: &charts.NetworkValidator{
+			LogLevel:    "debug",
+			LogFormat:   "plain",
+			ConnectAddr: "1.1.1.1:20001",
+			ListenAddr:  "0.0.0.0:4140",
+			Timeout:     "10s",
 		},
 		Configs: charts.ConfigJSONs{
 			Global:  "GlobalConfig",
@@ -319,7 +326,7 @@ func testInstallOptionsHA(ha bool) (*charts.Values, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(filepath.Join("testdata", "valid-crt.pem"))
+	data, err := os.ReadFile(filepath.Join("testdata", "valid-crt.pem"))
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +343,7 @@ func testInstallOptionsHA(ha bool) (*charts.Values, error) {
 	}
 	values.Identity.Issuer.TLS.KeyPEM = key
 
-	data, err = ioutil.ReadFile(filepath.Join("testdata", "valid-trust-anchors.pem"))
+	data, err = os.ReadFile(filepath.Join("testdata", "valid-trust-anchors.pem"))
 	if err != nil {
 		return nil, err
 	}
@@ -376,15 +383,15 @@ func testInstallValues() (*charts.Values, error) {
 	values.PolicyController.Image.Version = installControlPlaneVersion
 	values.HeartbeatSchedule = fakeHeartbeatSchedule()
 
-	identityCert, err := ioutil.ReadFile(filepath.Join("testdata", "valid-crt.pem"))
+	identityCert, err := os.ReadFile(filepath.Join("testdata", "valid-crt.pem"))
 	if err != nil {
 		return nil, err
 	}
-	identityKey, err := ioutil.ReadFile(filepath.Join("testdata", "valid-key.pem"))
+	identityKey, err := os.ReadFile(filepath.Join("testdata", "valid-key.pem"))
 	if err != nil {
 		return nil, err
 	}
-	trustAnchorsPEM, err := ioutil.ReadFile(filepath.Join("testdata", "valid-trust-anchors.pem"))
+	trustAnchorsPEM, err := os.ReadFile(filepath.Join("testdata", "valid-trust-anchors.pem"))
 	if err != nil {
 		return nil, err
 	}
@@ -516,7 +523,7 @@ func TestValidate(t *testing.T) {
 			}
 			values.Identity.Issuer.TLS.KeyPEM = key
 
-			ca, err := ioutil.ReadFile(filepath.Join("testdata", tc.crtFilePrefix+"-trust-anchors.pem"))
+			ca, err := os.ReadFile(filepath.Join("testdata", tc.crtFilePrefix+"-trust-anchors.pem"))
 			if err != nil {
 				t.Fatal(err)
 			}
