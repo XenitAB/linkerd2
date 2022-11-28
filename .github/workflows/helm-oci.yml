@@ -1,5 +1,8 @@
 name: release
 on:
+  push:
+    tags:
+      - "*"
   release:
     types: [published]
 env:
@@ -8,14 +11,17 @@ jobs:
   helm:
     runs-on: ubuntu-latest
     steps:
-      - name: Clone repo
-        uses: actions/checkout@v2
       - name: Install Helm
         uses: azure/setup-helm@v1
       - name: Get GitHub Tag
         id: get_tag
         run: |
           echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+      - name: Clone repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.get_tag.outputs.tag }}
       - name: Publish Helm charts linkerd2-cni
         run: |
           cd charts/
