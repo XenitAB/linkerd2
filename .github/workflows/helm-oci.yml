@@ -19,8 +19,6 @@ jobs:
         id: get_tag
         run: |
           echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
-        env:
-          INPUT_TAG: ${{ inputs.overwrite_tag }}
       - name: Publish Helm charts linkerd2-cni
         run: |
           cd charts/
