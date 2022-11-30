@@ -18,7 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Helm
-        uses: azure/setup-helm@v1
+        uses: azure/setup-helm@v3
+        with:
+          version: "3.9.0"
       - name: Get GitHub Tag
         id: get_tag
         run: |
@@ -26,9 +28,11 @@ jobs:
           then
             echo "The defined tag is: $INPUT_TAG"
             echo "::set-output name=tag::refs/tags/$INPUT_TAG"
+            echo "::set-output name=helm_tag::$INPUT_TAG"
           else
             echo "Using default tag"
             echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+            echo "::set-output name=helm_tag::${GITHUB_REF}"
           fi
         env:
           INPUT_TAG: ${{ inputs.overwrite_tag }}
@@ -41,27 +45,27 @@ jobs:
         run: |
           cd charts/
           helm registry login -u ${{ github.repository_owner }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd2-cni -u
-          helm push linkerd2-cni-${{ steps.get_tag.outputs.tag }}.tgz oci://ghcr.io/xenitab/helm-charts
+          helm package --app-version ${{ steps.get_tag.outputs.helm_tag }} --version ${{ steps.get_tag.outputs.helm_tag }} linkerd2-cni -u
+          helm push linkerd2-cni-${{ steps.get_tag.outputs.helm_tag }}.tgz oci://ghcr.io/xenitab/helm-charts
           cd ../..
       - name: Publish Helm charts linkerd-control-plane
         run: |
           cd charts/
           helm registry login -u ${{ github.repository_owner }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd-control-plane -u
-          helm push linkerd-control-plane-${{ steps.get_tag.outputs.tag }}.tgz oci://ghcr.io/xenitab/helm-charts
+          helm package --app-version ${{ steps.get_tag.outputs.helm_tag }} --version ${{ steps.get_tag.outputs.helm_tag }} linkerd-control-plane -u
+          helm push linkerd-control-plane-${{ steps.get_tag.outputs.helm_tag }}.tgz oci://ghcr.io/xenitab/helm-charts
           cd ../..
       - name: Publish Helm charts linkerd-control-plane
         run: |
           cd charts/
           helm registry login -u ${{ github.repository_owner }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd-crds -u
-          helm push linkerd-crds-${{ steps.get_tag.outputs.tag }}.tgz oci://ghcr.io/xenitab/helm-charts
+          helm package --app-version ${{ steps.get_tag.outputs.helm_tag }} --version ${{ steps.get_tag.outputs.helm_tag }} linkerd-crds -u
+          helm push linkerd-crds-${{ steps.get_tag.outputs.helm_tag }}.tgz oci://ghcr.io/xenitab/helm-charts
           cd ../..
       - name: Publish Helm charts linkerd-viz
         run: |
           cd viz/charts/
           helm registry login -u ${{ github.repository_owner }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
-          helm package --app-version ${{ steps.get_tag.outputs.tag }} --version ${{ steps.get_tag.outputs.tag }} linkerd-viz -u
-          helm push linkerd-viz-${{ steps.get_tag.outputs.tag }}.tgz oci://ghcr.io/xenitab/helm-charts
+          helm package --app-version ${{ steps.get_tag.outputs.helm_tag }} --version ${{ steps.get_tag.outputs.helm_tag }} linkerd-viz -u
+          helm push linkerd-viz-${{ steps.get_tag.outputs.helm_tag }}.tgz oci://ghcr.io/xenitab/helm-charts
           cd ../..
