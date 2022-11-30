@@ -25,7 +25,7 @@ jobs:
           if [ -n "$INPUT_TAG" ]
           then
             echo "The defined tag is: $INPUT_TAG"
-            echo "::set-output name=tag::$INPUT_TAG"
+            echo "::set-output name=tag::refs/tags/$INPUT_TAG"
           else
             echo "Using default tag"
             echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
