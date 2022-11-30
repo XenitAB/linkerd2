@@ -5,6 +5,12 @@ on:
       - "*"
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      overwrite_tag:
+        description: "Which tag to cut a release for"
+        required: false
+        type: string
 env:
   NAME: "linkerd"
 jobs:
@@ -16,7 +22,16 @@ jobs:
       - name: Get GitHub Tag
         id: get_tag
         run: |
-          echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+          if [ -n "$INPUT_TAG" ]
+          then
+            echo "The defined tag is: $INPUT_TAG"
+            echo "::set-output name=tag::refs/tags/$INPUT_TAG"
+          else
+            echo "Using default tag"
+            echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+          fi
+        env:
+          INPUT_TAG: ${{ inputs.overwrite_tag }}
       - name: Clone repo
         uses: actions/checkout@v3
         with:
