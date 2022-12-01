@@ -39,7 +39,6 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
           ref: ${{ steps.get_tag.outputs.tag }}
       - name: Publish Helm charts linkerd2-cni
         run: |
